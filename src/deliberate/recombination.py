@@ -10,6 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
+from typing import List, Optional, Tuple
 from monty.serialization import dumpfn, loadfn
 
 from pymatgen.core.structure import Molecule
