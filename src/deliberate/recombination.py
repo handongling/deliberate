@@ -126,6 +126,7 @@ def generate_combinations(mol_graphs: List[MoleculeGraph], directory: Path, max_
         heavy_atoms_index_list = identify_connectable_heavy_atoms(mol_graphs)
         num_mols = len(mol_graphs)
         all_mol_pair_index = list(combinations_with_replacement(range(num_mols), 2))
+        comp_buckets = {}
         for pair_index in tqdm(all_mol_pair_index):
             mol_graph1 = mol_graphs[pair_index[0]]
             mol_graph2 = mol_graphs[pair_index[1]]
@@ -167,6 +168,8 @@ def generate_combinations(mol_graphs: List[MoleculeGraph], directory: Path, max_
                         combined_mol_graph.add_edge(atom1, atom2 + len(mol_graph1.molecule))
 
                         match = False
+                        
+                        #check if the recombination is something in the original fragment list
                         for entry in mol_graphs:
                             if (
                                 combined_mol_graph.isomorphic_to(entry)
@@ -176,18 +179,28 @@ def generate_combinations(mol_graphs: List[MoleculeGraph], directory: Path, max_
                                 break
                         if match:
                             continue
-
+                        
+                        #check if the recombination is something in the new combinations
                         index = None
-                        for ii, mol_graph in enumerate(final_list):
-                            if (
-                                mol_graph.isomorphic_to(combined_mol_graph)
-                                and combined_mol_graph.molecule.charge == entry.molecule.charge
+                        comp = tuple(sorted(combined_mol_graph.molecule.composition.element_composition.get_el_amt_dict().items()))
+                        comp_index = {}
+                        count = 0
+                        if comp not in comp_buckets:
+                            comp_buckets[comp] = (combined_mol_graph,0)
+                            continue
+                        else:
+                            for mol_graph in comp_buckets[comp]:
+                                if (
+                                mol_graph[0].isomorphic_to(combined_mol_graph)
+                                and combined_mol_graph.molecule.charge == mol_graph.molecule.charge
                             ):
-                                index = ii
-                                break
+                                    index = mol_graph[1]
+                                    break
+
                         if index is None:
-                            index = len(final_list)
-                            final_list.append(combined_mol_graph)
+                            count+=1
+                            index = count
+                            comp_buckets.append((combined_mol_graph, count))
 
                         combos.write("{}\t{}\t{}\t{}\t{}\n".format(pair_index[0], atom1, pair_index[1], atom2, index))
 
