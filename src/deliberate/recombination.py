@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 
 import numpy as np
-
+from tqdm import tqdm
 from typing import List, Optional, Tuple
 from monty.serialization import dumpfn, loadfn
 
@@ -126,7 +126,7 @@ def generate_combinations(mol_graphs: List[MoleculeGraph], directory: Path, max_
         heavy_atoms_index_list = identify_connectable_heavy_atoms(mol_graphs)
         num_mols = len(mol_graphs)
         all_mol_pair_index = list(combinations_with_replacement(range(num_mols), 2))
-        for pair_index in all_mol_pair_index:
+        for pair_index in tqdm(all_mol_pair_index):
             mol_graph1 = mol_graphs[pair_index[0]]
             mol_graph2 = mol_graphs[pair_index[1]]
 
@@ -150,9 +150,19 @@ def generate_combinations(mol_graphs: List[MoleculeGraph], directory: Path, max_
                         specie1 = str(mol_graph1.molecule[atom1].specie)
                         specie2 = str(mol_graph2.molecule[atom2].specie)
 
-                        if specie1 == "Li" and specie2 == "Li":
-                            continue
+                        forbidden_connections = [frozenset(("Li", "P")), 
+                                                 frozenset(("Li", "Li")),
+                                                 frozenset(("S", "Li")),
+                                                 frozenset(("F", "Li")), 
+                                                 frozenset(("F", "P")),
+                                                 frozenset(("F", "S")), 
+                                                 frozenset(("F", "F")), 
+                                                 frozenset(("P", "P")),
+                                                 frozenset(("S", "S"))]
 
+                        if frozenset({specie1, specie2}) in forbidden_connections:
+                            continue
+                        
                         combined_mol_graph = combine_mol_graphs(mol_graph1, mol_graph2)
                         combined_mol_graph.add_edge(atom1, atom2 + len(mol_graph1.molecule))
 
